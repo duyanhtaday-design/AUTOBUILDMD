@@ -8,28 +8,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: AutoBuilderPlus
-
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+          cache: gradle
 
-      - name: Build
+      - name: Find Gradle project
+        id: project
+        shell: bash
+        run: |
+          FILE=$(find . -type f -name gradlew \
+            -not -path '*/.gradle/*' | head -n 1)
+
+          if [ -z "$FILE" ]; then
+            echo "ERROR: Cannot find gradlew!"
+            exit 1
+          fi
+
+          DIR=$(dirname "$FILE")
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "Found Gradle project: $DIR"
+
+      - name: Build AutoBuilderPlus
+        working-directory: ${{ steps.project.outputs.dir }}
         run: |
           chmod +x gradlew
-          ./gradlew clean build
+          ./gradlew clean build --no-daemon
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: AutoBuilderPlus-1.0.0
-          path: AutoBuilderPlus/build/libs/*.jar
+          path: |
+            **/build/libs/*.jar
           if-no-files-found: error
