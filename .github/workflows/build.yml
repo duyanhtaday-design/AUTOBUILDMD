@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java 21
@@ -17,27 +17,30 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
 
-      - name: Find Gradle project
-        id: project
+      - name: Locate Gradle Wrapper
+        id: locate
         shell: bash
         run: |
-          FILE=$(find . -type f -name gradlew \
-            -not -path '*/.gradle/*' | head -n 1)
+          echo "Searching for Gradle Wrapper..."
+
+          find . -type f -name gradlew -print
+
+          FILE=$(find . -type f -name gradlew | head -n 1)
 
           if [ -z "$FILE" ]; then
-            echo "ERROR: Cannot find gradlew!"
+            echo "ERROR: gradlew does not exist!"
+            echo "Upload Gradle Wrapper to GitHub first."
             exit 1
           fi
 
           DIR=$(dirname "$FILE")
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "Found Gradle project: $DIR"
 
-      - name: Build AutoBuilderPlus
-        working-directory: ${{ steps.project.outputs.dir }}
+      - name: Build
+        shell: bash
         run: |
+          cd "${{ steps.locate.outputs.dir }}"
           chmod +x gradlew
           ./gradlew clean build --no-daemon
 
@@ -45,6 +48,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AutoBuilderPlus-1.0.0
-          path: |
-            **/build/libs/*.jar
+          path: '**/build/libs/*.jar'
           if-no-files-found: error
