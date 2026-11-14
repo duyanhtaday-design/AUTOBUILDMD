@@ -1,0 +1,35 @@
+
+name: AutoBuilderPlus Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: AutoBuilderPlus
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build
+        run: |
+          chmod +x gradlew
+          ./gradlew clean build
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoBuilderPlus-1.0.0
+          path: AutoBuilderPlus/build/libs/*.jar
+          if-no-files-found: error
